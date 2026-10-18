@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Random Line Graph</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 8px;
+      background: #fff;
+      color: #111;
+      font-family: Arial, sans-serif;
+    }
+
+    #values {
+      margin: 0 0 6px;
+      white-space: pre-wrap;
+      font: 13px/1.25 monospace;
+    }
+
+    .chart-wrap {
+      width: min(100%, 800px);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    button {
+      margin-top: 8px;
+      padding: 7px 12px;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      background: #f7f7f7;
+      color: #111;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover { background: #eee; }
+    button:focus-visible { outline: 2px solid #1676bd; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <main>
+    <pre id="values" aria-live="polite"></pre>
+    <div class="chart-wrap">
+      <canvas id="chart" width="800" height="500" role="img" aria-label="กราฟเส้นข้อมูลสุ่ม"></canvas>
+    </div>
+    <button id="randomize" type="button">สุ่มข้อมูลใหม่</button>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("chart");
+    const context = canvas.getContext("2d");
+    const xValues = Array.from({ length: 10 }, (_, index) => index + 1);
+    let yValues = [];
+
+    function drawChart() {
+      const width = canvas.width;
+      const height = canvas.height;
+      const left = 72;
+      const right = width - 28;
+      const top = 48;
+      const bottom = height - 50;
+      const minValue = Math.min(...yValues);
+      const maxValue = Math.max(...yValues);
+      const yMin = Math.max(0, Math.floor((minValue - 5) / 10) * 10);
+      const yMax = Math.min(100, Math.ceil((maxValue + 5) / 10) * 10) || 10;
+
+      context.clearRect(0, 0, width, height);
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, width, height);
+      context.fillStyle = "#111";
+      context.font = "20px Arial, sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("Random Line Graph", width / 2, 27);
+
+      context.strokeStyle = "#aaa";
+      context.lineWidth = 1;
+      context.fillStyle = "#111";
+      context.font = "14px Arial, sans-serif";
+      context.textAlign = "right";
+      context.textBaseline = "middle";
+
+      const firstTick = Math.ceil(yMin / 10) * 10;
+      for (let tick = firstTick; tick <= yMax; tick += 10) {
+        const y = bottom - ((tick - yMin) / (yMax - yMin)) * (bottom - top);
+        context.beginPath();
+        context.moveTo(left, y);
+        context.lineTo(right, y);
+        context.stroke();
+        context.fillText(String(tick), left - 10, y);
+      }
+
+      context.textAlign = "center";
+      for (let tick = 2; tick <= 10; tick += 2) {
+        const x = left + ((tick - 1) / 9) * (right - left);
+        context.beginPath();
+        context.moveTo(x, top);
+        context.lineTo(x, bottom);
+        context.stroke();
+        context.fillStyle = "#111";
+        context.fillText(String(tick), x, bottom + 16);
+      }
+
+      context.strokeStyle = "#111";
+      context.lineWidth = 1;
+      context.strokeRect(left, top, right - left, bottom - top);
+
+      context.beginPath();
+      context.strokeStyle = "#1976bd";
+      context.lineWidth = 2;
+      xValues.forEach((value, index) => {
+        const x = left + ((value - 1) / 9) * (right - left);
+        const y = bottom - ((yValues[index] - yMin) / (yMax - yMin)) * (bottom - top);
+        if (index === 0) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      });
+      context.stroke();
+
+      xValues.forEach((value, index) => {
+        const x = left + ((value - 1) / 9) * (right - left);
+        const y = bottom - ((yValues[index] - yMin) / (yMax - yMin)) * (bottom - top);
+        context.beginPath();
+        context.arc(x, y, 5, 0, Math.PI * 2);
+        context.fillStyle = "#2584c5";
+        context.fill();
+      });
+
+      context.fillStyle = "#111";
+      context.font = "14px Arial, sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("X Axis", (left + right) / 2, height - 12);
+      context.save();
+      context.translate(18, (top + bottom) / 2);
+      context.rotate(-Math.PI / 2);
+      context.fillText("Y Axis", 0, 0);
+      context.restore();
+
+      const legendX = right - 150;
+      const legendY = top + 5;
+      context.fillStyle = "#fff";
+      context.strokeStyle = "#ccc";
+      context.lineWidth = 1;
+      context.fillRect(legendX, legendY, 140, 30);
+      context.strokeRect(legendX, legendY, 140, 30);
+      context.beginPath();
+      context.moveTo(legendX + 12, legendY + 15);
+      context.lineTo(legendX + 42, legendY + 15);
+      context.strokeStyle = "#1976bd";
+      context.lineWidth = 2;
+      context.stroke();
+      context.beginPath();
+      context.arc(legendX + 27, legendY + 15, 4, 0, Math.PI * 2);
+      context.fillStyle = "#2584c5";
+      context.fill();
+      context.fillStyle = "#111";
+      context.textAlign = "left";
+      context.fillText("Random Data", legendX + 52, legendY + 15);
+    }
+
+    function randomizeData() {
+      yValues = xValues.map(() => Math.floor(Math.random() * 101));
+      document.getElementById("values").textContent =
+        `x = [${xValues.join(", ")}]\ny = [${yValues.join(", ")}]`;
+      drawChart();
+    }
+
+    document.getElementById("randomize").addEventListener("click", randomizeData);
+    randomizeData();
+  </script>
+</body>
+</html>
